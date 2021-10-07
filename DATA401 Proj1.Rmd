@@ -1,0 +1,133 @@
+---
+title: "data 401 p1"
+author: "Casey Ng"
+date: "10/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+## Loading in libraries
+library(car)
+library(tidyverse)
+```
+
+```{r}
+## Reading in data
+urlfile <- 'https://raw.githubusercontent.com/cng27/DATA401_Project1/main/fastfood.csv'
+data <- read.csv(urlfile)
+
+head(data)
+```
+
+# Question 1
+
+## Data Exploration
+
+```{r}
+hist(abs(data[,11] - mean(data[,11], na.rm = TRUE)))
+```
+
+
+```{r}
+## Histograms of each variable in the data set
+for (i in 1:length(data)) {
+  dist <- hist(data[,i], main=str_c("Histogram of ", colnames(data)[i]), xlab=colnames(data)[i])
+  print(dist)
+}
+```
+
+```{r}
+## scatterplots of each wave 2 feature vs. psoda2
+for (i in c(12:28)) {
+  dist <- scatter.smooth(data[,i],data[,9], xlab = colnames(data)[i], ylab = colnames(data)[9])
+  print(dist)
+}
+```
+
+```{r}
+## scatterplots of each wave 2 feature vs. pfries2
+for (i in c(12:28)) {
+  dist <- scatter.smooth(data[,i],data[,10], xlab = colnames(data)[i], ylab = colnames(data)[10])
+  print(dist)
+}
+```
+
+```{r}
+## scatterplots of each wave 2 feature vs. pentree2
+for (i in c(12:28)) {
+  dist <- scatter.smooth(data[,i],data[,11], xlab = colnames(data)[i], ylab = colnames(data)[11])
+  print(dist)
+}
+```
+
+# Question 2
+
+```{r}
+## Creating data set for model with only features we chose based on domain knowledge to be correlated with proprortion black in a specific zip code
+q2 <- data
+q2['wagediff'] <- (q2$wagest2 - q2$wagest)
+keeps <- c('wagediff', 'prpblck', 'crmrte', 'state', 'prppov', 'prpncar', 'income',
+           'county', 'density', 'hseval')
+q2_keep <- q2[keeps]
+
+```
+
+
+```{r}
+## Histograms of each variable in the data set
+for (i in 1:length(keeps)) {
+  dist <- hist(q2_keep[,i], main=str_c("Histogram of ", keeps[i]), xlab=keeps[i])
+  print(dist)
+}
+```
+
+```{r}
+## Scatterplots of each feature vs. difference in starting wage from before and after the increase in minimum wage
+for (i in 2:length(keeps)) {
+  dist <- scatter.smooth(q2_keep[,i],q2_keep[,1], xlab = keeps[i], ylab = keeps[1])
+  print(dist)
+}
+```
+
+
+```{r}
+## Creating the causal model
+causal_model = lm(wagediff ~ ., data=q2_keep)
+summary(causal_model)
+```
+
+
+```{r}
+## Checking assumptions for the causal model
+par(mfcol=c(2,2))
+qqPlot(rstudent(causal_model),pch=16)
+hist(rstudent(causal_model),main="")
+residualPlots(causal_model,type="rstudent",terms=~1,quadratic=FALSE,pch=16)
+plot(rstudent(causal_model),type="o",pch=16)
+abline(h=0,lty="dashed")
+par(mfcol=c(1,1))
+```
+
+
+```{r}
+## Creating the causal model
+squared_causal_model = lm(wagediff**2 ~ ., data=q2_keep)
+summary(squared_causal_model)
+```
+
+```{r}
+## Checking assumptions for the causal model
+par(mfcol=c(2,2))
+qqPlot(rstudent(squared_causal_model),pch=16)
+hist(rstudent(squared_causal_model),main="")
+residualPlots(squared_causal_model,type="rstudent",terms=~1,quadratic=FALSE,pch=16)
+plot(rstudent(squared_causal_model),type="o",pch=16)
+abline(h=0,lty="dashed")
+par(mfcol=c(1,1))
+```
+
+
